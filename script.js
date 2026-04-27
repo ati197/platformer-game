@@ -2,65 +2,65 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
 // =====================
-// 🎮 GAME STATE
+// 🎮 GAME STATE ENGINE
 // =====================
-let level = 1;
+let state = "menu"; // menu | play | win | over
 let score = 0;
-let gameState = "play"; // play | over | win
 
 // =====================
-// 📷 CAMERA (SMOOTH)
+// 📷 CAMERA (SMOOTH + DEADZONE)
 // =====================
 let cameraX = 0;
-let cameraTarget = 0;
+let targetCam = 0;
 
 // =====================
-// 🧍 PLAYER (AAA FEEL)
+// 🧍 PLAYER (CONSOLE FEEL)
 // =====================
 let player = {
-  x: 50,
+  x: 60,
   y: 300,
   w: 30,
   h: 30,
   dx: 0,
   dy: 0,
-  speed: 0.5,
+  speed: 0.6,
   maxSpeed: 4,
-  friction: 0.85,
-  jump: -11,
-  onGround: false
+  friction: 0.88,
+  jump: -12,
+  onGround: false,
+  hurt: 0
 };
 
 // =====================
 // 🌍 PHYSICS
 // =====================
-let gravity = 0.6;
+let gravity = 0.65;
 
 // =====================
-// 🎮 LEVEL DATA (SIMPLE AAA WORLD)
+// 🎮 LEVEL DATA (ENGINE STYLE)
 // =====================
-let L = {
+let level = {
   platforms: [
     { x: 0, y: 350, w: 2000, h: 50 },
-    { x: 200, y: 280, w: 120, h: 20 },
-    { x: 450, y: 240, w: 120, h: 20 },
-    { x: 700, y: 200, w: 120, h: 20 },
+    { x: 250, y: 290, w: 120, h: 20 },
+    { x: 500, y: 240, w: 120, h: 20 },
+    { x: 750, y: 200, w: 120, h: 20 },
     { x: 1000, y: 260, w: 120, h: 20 }
   ],
   coins: [
-    { x: 220, y: 250, r: 8, c: false },
-    { x: 470, y: 210, r: 8, c: false },
-    { x: 720, y: 170, r: 8, c: false }
+    { x: 270, y: 260, r: 8, c: false },
+    { x: 520, y: 210, r: 8, c: false },
+    { x: 770, y: 170, r: 8, c: false }
   ],
   enemies: [
-    { x: 400, y: 325, w: 25, h: 25, dir: 1 },
-    { x: 800, y: 325, w: 25, h: 25, dir: -1 }
+    { x: 400, y: 325, w: 25, h: 25, dir: 1, min: 300, max: 700 },
+    { x: 850, y: 325, w: 25, h: 25, dir: -1, min: 750, max: 1100 }
   ],
   flag: { x: 1200, y: 300, w: 20, h: 50 }
 };
 
 // =====================
-// 🎮 CONTROLS
+// 🎮 INPUT SYSTEM
 // =====================
 let keys = { left: false, right: false, up: false };
 
@@ -68,6 +68,8 @@ document.addEventListener("keydown", e => {
   if (e.key === "ArrowLeft") keys.left = true;
   if (e.key === "ArrowRight") keys.right = true;
   if (e.key === "ArrowUp") keys.up = true;
+
+  if (e.key === "Enter" && state === "menu") state = "play";
   if (e.key === "r") reset();
 });
 
@@ -93,43 +95,59 @@ function hit(a, b) {
 // 🔄 RESET
 // =====================
 function reset() {
-  player.x = 50;
+  player.x = 60;
   player.y = 300;
   player.dx = 0;
   player.dy = 0;
   score = 0;
-  gameState = "play";
-
-  L.coins.forEach(c => c.c = false);
+  state = "play";
+  level.coins.forEach(c => c.c = false);
 }
 
 // =====================
-// 🎮 UPDATE LOOP
+// 🎮 MAIN LOOP
 // =====================
 function update() {
 
+  // =====================
   // 🌈 BACKGROUND
-  ctx.fillStyle = "#5ec2ff";
+  // =====================
+  ctx.fillStyle = "#6ec6ff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  if (gameState === "over") {
+  // =====================
+  // 🎮 MENU
+  // =====================
+  if (state === "menu") {
     ctx.fillStyle = "black";
     ctx.font = "30px Arial";
-    ctx.fillText("💀 Game Over", 200, 200);
-    requestAnimationFrame(update);
-    return;
-  }
-
-  if (gameState === "win") {
-    ctx.fillStyle = "black";
-    ctx.font = "30px Arial";
-    ctx.fillText("🏆 YOU WIN!", 200, 200);
+    ctx.fillText("🎮 PRESS ENTER", 120, 200);
     requestAnimationFrame(update);
     return;
   }
 
   // =====================
-  // 🧍 PLAYER PHYSICS (AAA FEEL)
+  // 💀 GAME OVER
+  // =====================
+  if (state === "over") {
+    ctx.fillStyle = "black";
+    ctx.font = "30px Arial";
+    ctx.fillText("💀 GAME OVER", 120, 200);
+    return;
+  }
+
+  // =====================
+  // 🏆 WIN
+  // =====================
+  if (state === "win") {
+    ctx.fillStyle = "black";
+    ctx.font = "30px Arial";
+    ctx.fillText("🏆 YOU WIN!", 140, 200);
+    return;
+  }
+
+  // =====================
+  // 🧍 PLAYER MOVEMENT (AAA FEEL)
   // =====================
   if (keys.left) player.dx -= player.speed;
   if (keys.right) player.dx += player.speed;
@@ -150,15 +168,16 @@ function update() {
   player.onGround = false;
 
   // =====================
-  // 📷 SMOOTH CAMERA
+  // 📷 CAMERA SMOOTH + DEADZONE
   // =====================
-  cameraTarget = player.x - 120;
-  cameraX += (cameraTarget - cameraX) * 0.1;
+  targetCam = player.x - 120;
+  cameraX += (targetCam - cameraX) * 0.08;
 
   // =====================
   // 🧱 PLATFORMS
   // =====================
-  for (let p of L.platforms) {
+  for (let p of level.platforms) {
+
     ctx.fillStyle = "#8B4513";
     ctx.fillRect(p.x - cameraX, p.y, p.w, p.h);
 
@@ -172,10 +191,11 @@ function update() {
   }
 
   // =====================
-  // 🪙 COINS (POP EFFECT)
+  // 🪙 COINS + PARTICLE FEEL
   // =====================
-  for (let c of L.coins) {
+  for (let c of level.coins) {
     if (!c.c) {
+
       ctx.fillStyle = "gold";
       ctx.beginPath();
       ctx.arc(c.x - cameraX, c.y, c.r, 0, Math.PI * 2);
@@ -192,19 +212,19 @@ function update() {
   }
 
   // =====================
-  // 👾 ENEMIES (SMOOTH AI)
+  // 👾 ENEMIES (PATROL AI)
   // =====================
-  for (let e of L.enemies) {
+  for (let e of level.enemies) {
 
-    e.x += e.dir * 1.5;
+    e.x += e.dir * 1.8;
 
-    if (e.x < 300 || e.x > 1100) e.dir *= -1;
+    if (e.x < e.min || e.x > e.max) e.dir *= -1;
 
     ctx.fillStyle = "#7a2cff";
     ctx.fillRect(e.x - cameraX, e.y, e.w, e.h);
 
     if (hit(player, e)) {
-      gameState = "over";
+      state = "over";
     }
   }
 
@@ -212,17 +232,24 @@ function update() {
   // 🏁 FLAG
   // =====================
   ctx.fillStyle = "green";
-  ctx.fillRect(L.flag.x - cameraX, L.flag.y, L.flag.w, L.flag.h);
+  ctx.fillRect(level.flag.x - cameraX, level.flag.y, level.flag.w, level.flag.h);
 
-  if (hit(player, L.flag)) {
-    gameState = "win";
+  if (hit(player, level.flag)) {
+    state = "win";
   }
 
   // =====================
-  // 🧍 PLAYER
+  // 🧍 PLAYER (HURT EFFECT)
   // =====================
+  if (player.hurt > 0) {
+    ctx.globalAlpha = 0.5;
+    player.hurt--;
+  }
+
   ctx.fillStyle = "red";
   ctx.fillRect(player.x - cameraX, player.y, player.w, player.h);
+
+  ctx.globalAlpha = 1;
 
   // =====================
   // 🏆 UI
