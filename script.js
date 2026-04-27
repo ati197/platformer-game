@@ -141,19 +141,27 @@ function update() {
     }
   }
 
-  // 👾 Enemies
-  for (let e of enemies) {
-    e.x += e.dir * 2;
+for (let e of enemies) {
+  // 👾 movement
+  e.x += e.dir * 2;
 
-    if (e.x < 200 || e.x > 650) e.dir *= -1;
+  // 🔁 reverse direction at limits
+  if (e.x < 150 || e.x > 700) e.dir *= -1;
 
-    ctx.fillStyle = "purple";
-    ctx.fillRect(e.x, e.y, e.width, e.height);
+  // 🎨 draw enemy (make it clearly visible)
+  ctx.fillStyle = "black";
+  ctx.fillRect(e.x, e.y, e.width, e.height);
 
-    if (collide(player, e)) {
-      player.alive = false;
-    }
+  // 👁️ add eyes (so you can SEE them clearly)
+  ctx.fillStyle = "red";
+  ctx.fillRect(e.x + 5, e.y + 5, 5, 5);
+  ctx.fillRect(e.x + 15, e.y + 5, 5, 5);
+
+  // 💥 collision (kill player)
+  if (collide(player, e)) {
+    player.alive = false;
   }
+}
 
   // 🏁 Goal
   ctx.fillStyle = "green";
