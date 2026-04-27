@@ -54,7 +54,7 @@ function stop(e) {
   }
 }
 
-// 💥 Collision check
+// 💥 Collision
 function collision(a, b) {
   return (
     a.x < b.x + b.width &&
@@ -66,7 +66,10 @@ function collision(a, b) {
 
 // 🎮 GAME LOOP
 function update() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // 🌍 Background (MUST BE FIRST)
+  ctx.fillStyle = "skyblue";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // 🧍 Player movement
   player.x += player.dx;
@@ -75,7 +78,7 @@ function update() {
 
   player.onGround = false;
 
-  // 🧱 Draw platforms
+  // 🧱 Platforms
   for (let p of platforms) {
     ctx.fillStyle = "brown";
     ctx.fillRect(p.x, p.y, p.width, p.height);
@@ -89,7 +92,7 @@ function update() {
     }
   }
 
-  // 🪙 Draw coins + collect logic
+  // 🪙 Coins
   for (let coin of coins) {
     if (!coin.collected) {
       ctx.fillStyle = "gold";
@@ -108,14 +111,14 @@ function update() {
     }
   }
 
-  // 🧍 Draw player
+  // 🧍 Player
   ctx.fillStyle = "red";
   ctx.fillRect(player.x, player.y, player.width, player.height);
 
-  // 🏆 Score UI
-  ctx.fillStyle = "black";
+  // 🏆 Score UI (LAST - IMPORTANT)
+  ctx.fillStyle = "white";
   ctx.font = "20px Arial";
-  ctx.fillText("Score: " + score, 20, 30);
+  ctx.fillText("🏆 Score: " + score, 20, 30);
 
   // 🚧 Boundaries
   if (player.x < 0) player.x = 0;
