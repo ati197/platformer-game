@@ -11,6 +11,7 @@ let cameraX = 0;
 // =====================
 let level = 1;
 let score = 0;
+let levelComplete = false;
 
 // =====================
 // 🧍 PLAYER
@@ -29,12 +30,12 @@ let player = {
 };
 
 // =====================
-// 🌍 PHYSICS
+// 🌍 GRAVITY
 // =====================
 let gravity = 0.6;
 
 // =====================
-// 🎮 LEVEL DATA
+// 🎮 LEVELS
 // =====================
 let levels = {
 
@@ -59,12 +60,12 @@ let levels = {
       { x: 0, y: 350, w: 1000, h: 50 },
       { x: 250, y: 300, w: 120, h: 20 },
       { x: 500, y: 250, w: 120, h: 20 },
-      { x: 750, y: 200, w: 120, h: 20 }
+      { x: 750, y: 220, w: 120, h: 20 }
     ],
     coins: [
       { x: 260, y: 270, r: 8, c: false },
       { x: 520, y: 220, r: 8, c: false },
-      { x: 760, y: 170, r: 8, c: false }
+      { x: 760, y: 190, r: 8, c: false }
     ],
     enemies: [
       { x: 400, y: 325, w: 25, h: 25, dir: 1 },
@@ -78,12 +79,12 @@ let levels = {
       { x: 0, y: 350, w: 1200, h: 50 },
       { x: 300, y: 300, w: 120, h: 20 },
       { x: 600, y: 250, w: 120, h: 20 },
-      { x: 900, y: 200, w: 120, h: 20 }
+      { x: 900, y: 220, w: 120, h: 20 }
     ],
     coins: [
       { x: 320, y: 270, r: 8, c: false },
       { x: 620, y: 220, r: 8, c: false },
-      { x: 920, y: 170, r: 8, c: false }
+      { x: 920, y: 190, r: 8, c: false }
     ],
     enemies: [
       { x: 500, y: 325, w: 25, h: 25, dir: 1 },
@@ -94,9 +95,9 @@ let levels = {
 };
 
 // =====================
-// 🔄 LOAD LEVEL
+// 🔄 GET LEVEL
 // =====================
-function currentLevel() {
+function L() {
   return levels[level];
 }
 
@@ -140,37 +141,42 @@ function reset() {
   player.y = 300;
   player.dx = 0;
   player.dy = 0;
-  player.alive = true;
   cameraX = 0;
+  levelComplete = false;
+
+  L().coins.forEach(c => c.c = false);
 }
 
 // =====================
-// 🚀 NEXT LEVEL
+// 🏁 NEXT LEVEL (FIXED)
 // =====================
 function nextLevel() {
-  level++;
+  if (levelComplete) return;
 
-  if (level > 3) {
-    level = 3;
-    alert("🏆 YOU COMPLETED ALL LEVELS!");
-    return;
-  }
+  levelComplete = true;
 
-  reset();
+  setTimeout(() => {
+    level++;
 
-  // reset coins
-  currentLevel().coins.forEach(c => c.c = false);
+    if (level > 3) {
+      alert("🏆 YOU COMPLETED ALL LEVELS!");
+      level = 3;
+    }
+
+    reset();
+  }, 700);
 }
 
 // =====================
-// 🎮 LOOP
+// 🎮 GAME LOOP
 // =====================
 function update() {
 
+  // 🌈 BACKGROUND
   ctx.fillStyle = "#6ec6ff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  let L = currentLevel();
+  let levelData = L();
 
   // =====================
   // 🧍 PLAYER PHYSICS
@@ -186,7 +192,8 @@ function update() {
   // =====================
   // 🧱 PLATFORMS
   // =====================
-  for (let p of L.platforms) {
+  for (let p of levelData.platforms) {
+
     ctx.fillStyle = "#8B4513";
     ctx.fillRect(p.x - cameraX, p.y, p.w, p.h);
 
@@ -202,8 +209,9 @@ function update() {
   // =====================
   // 🪙 COINS
   // =====================
-  for (let c of L.coins) {
+  for (let c of levelData.coins) {
     if (!c.c) {
+
       ctx.fillStyle = "gold";
       ctx.beginPath();
       ctx.arc(c.x - cameraX, c.y, c.r, 0, Math.PI * 2);
@@ -222,10 +230,11 @@ function update() {
   // =====================
   // 👾 ENEMIES
   // =====================
-  for (let e of L.enemies) {
+  for (let e of levelData.enemies) {
 
     e.x += e.dir * 2;
-    if (e.x < 150 || e.x > L.flag.x - 100) e.dir *= -1;
+
+    if (e.x < 150 || e.x > levelData.flag.x - 100) e.dir *= -1;
 
     ctx.fillStyle = "purple";
     ctx.fillRect(e.x - cameraX, e.y, e.w, e.h);
@@ -237,9 +246,11 @@ function update() {
   // 🏁 FLAG
   // =====================
   ctx.fillStyle = "green";
-  ctx.fillRect(L.flag.x - cameraX, L.flag.y, L.flag.w, L.flag.h);
+  ctx.fillRect(levelData.flag.x - cameraX, levelData.flag.y, levelData.flag.w, levelData.flag.h);
 
-  if (hit(player, L.flag)) nextLevel();
+  if (hit(player, levelData.flag) && !levelComplete) {
+    nextLevel();
+  }
 
   // =====================
   // 🧍 PLAYER
@@ -254,6 +265,12 @@ function update() {
   ctx.font = "20px Arial";
   ctx.fillText("Level: " + level, 10, 20);
   ctx.fillText("Score: " + score, 10, 45);
+
+  if (!player.alive) {
+    ctx.fillStyle = "black";
+    ctx.font = "30px Arial";
+    ctx.fillText("💀 Game Over - Press R", 100, 200);
+  }
 
   requestAnimationFrame(update);
 }
